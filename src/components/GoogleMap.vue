@@ -11,6 +11,7 @@
 
 <script>
 import { Loader } from '@googlemaps/js-api-loader';
+import { v4 as uuidv4 } from 'uuid';
 
 export default {
   name: 'GoogleMap',
@@ -19,15 +20,30 @@ export default {
       map: null,
       google: null,
       points: [],
+      polygon: null,
     };
   },
   computed: {
     output() {
+      if (!this.polygon) {
+        return {};
+      }
+
+      const polygonBounds = this.polygon.getPath();
+      const bounds = [];
+      for (let i = 0; i < polygonBounds.length; i += 1) {
+        const point = {
+          lat: polygonBounds.getAt(i)
+            .lat(),
+          lng: polygonBounds.getAt(i)
+            .lng(),
+        };
+        bounds.push(point);
+      }
+
       this.points.forEach((p) => console.log(p.getPosition()));
       const result = {
-        coords: [
-          ...this.points.map((p) => p.getPosition()),
-        ],
+        coords: bounds,
         borderColor: '#c8c8b4',
         fillColor: '#c8c8b4',
       };
@@ -59,14 +75,39 @@ export default {
       const point = new this.google.maps.Marker({
         position: evt.latLng,
       });
+      const uid = uuidv4();
+      point.customID = uid;
       point.setMap(this.map);
       this.points.push(point);
-      const pointCounter = this.points.length;
+
       point.addListener('click', () => {
         point.setMap(null);
-        this.points = this.points.splice(pointCounter, 1);
+        this.points = this.points.filter((el) => el.customID !== uid);
       });
     });
+  },
+  watch: {
+    points() {
+      if (this.points.length > 2) {
+        if (this.polygon) {
+          this.polygon.setMap(null);
+        }
+
+        this.polygon = new this.google.maps.Polygon({
+          paths: [
+            ...this.points.map((p) => p.getPosition()),
+          ],
+
+          editable: true,
+          strokeColor: '#f00',
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: '#f00',
+          fillOpacity: 0.35,
+        });
+        this.polygon.setMap(this.map);
+      }
+    },
   },
 };
 </script>
