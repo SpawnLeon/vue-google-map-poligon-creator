@@ -2,25 +2,24 @@
   <div class="wrapper">
     <div class="map"
          ref="map"></div>
-    <br>
-    <br>
+
     <br>
     <pre> {{ output }}</pre>
   </div>
 </template>
 
 <script>
-import { Loader } from '@googlemaps/js-api-loader';
-import { v4 as uuidv4 } from 'uuid';
+
+import { initGoogleMap } from '@/libs/googleMapApi.js';
 
 export default {
   name: 'GoogleMap',
   data() {
     return {
-      map: null,
-      google: null,
       points: [],
       polygon: null,
+      google: null,
+      map: null,
     };
   },
   computed: {
@@ -28,9 +27,9 @@ export default {
       if (!this.polygon) {
         return {};
       }
-
       const polygonBounds = this.polygon.getPath();
       const bounds = [];
+
       for (let i = 0; i < polygonBounds.length; i += 1) {
         const point = {
           lat: polygonBounds.getAt(i)
@@ -41,7 +40,6 @@ export default {
         bounds.push(point);
       }
 
-      this.points.forEach((p) => console.log(p.getPosition()));
       const result = {
         coords: bounds,
         borderColor: '#c8c8b4',
@@ -52,52 +50,31 @@ export default {
     },
   },
   async mounted() {
-    const loader = new Loader({
-      apiKey: 'AIzaSyD5zqTuTJ9WQ349se_X8JNpamM5clXBtgY',
-      version: 'weekly',
-      libraries: ['places'],
-    });
-
-    const mapOptions = {
-      center: {
-        lat: 53.183330,
-        lng: 50.116670,
-      },
-      draggableCursor: 'default',
-      zoom: 8,
-    };
-    this.google = await loader.load();
-
-    this.map = new this.google.maps.Map(this.$refs.map, mapOptions);
+    const {
+      map,
+      google,
+    } = await initGoogleMap(this.$refs.map);
+    this.map = map;
+    this.google = google;
 
     this.map.addListener('click', (evt) => {
-      // eslint-disable-next-line no-new
-      const point = new this.google.maps.Marker({
-        position: evt.latLng,
-      });
-      const uid = uuidv4();
-      point.customID = uid;
-      point.setMap(this.map);
-      this.points.push(point);
-
-      point.addListener('click', () => {
-        point.setMap(null);
-        this.points = this.points.filter((el) => el.customID !== uid);
-      });
+      this.points.push(evt.latLng);
     });
   },
   watch: {
     points() {
+
       if (this.points.length > 2) {
         if (this.polygon) {
           this.polygon.setMap(null);
         }
 
-        this.polygon = new this.google.maps.Polygon({
+        const polygon = new this.google.maps.Polygon({
           paths: [
-            ...this.points.map((p) => p.getPosition()),
+            ...this.points,
           ],
-
+          draggable: true,
+          geodesic: true,
           editable: true,
           strokeColor: '#f00',
           strokeOpacity: 0.8,
@@ -105,7 +82,19 @@ export default {
           fillColor: '#f00',
           fillOpacity: 0.35,
         });
-        this.polygon.setMap(this.map);
+        this.polygon = polygon;
+        polygon.setMap(this.map);
+
+
+
+        const deleteMenu = new DeleteMenu();
+        google.maps.event.addListener(polygon, 'contextmenu', (e) => {
+          // Check if click was on a vertex control point
+          if (e.vertex === undefined) {
+            return;
+          }
+          deleteMenu.open(map, polygon.getPath(), e.vertex);
+        });
       }
     },
   },
@@ -117,4 +106,5 @@ export default {
 .map {
   min-height : 600px;
 }
+
 </style>

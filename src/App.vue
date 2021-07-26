@@ -27,7 +27,7 @@
   </v-app>
 </template>
 <script>
-
+import '@/assets/style.css';
 import GoogleMap from '@/components/GoogleMap.vue';
 
 export default {
