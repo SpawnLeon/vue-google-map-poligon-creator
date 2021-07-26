@@ -12,7 +12,7 @@
       <v-spacer></v-spacer>
 
       <v-btn
-        href="https://github.com/SpawnLeon"
+        href=""
         target="_blank"
         text
       >
