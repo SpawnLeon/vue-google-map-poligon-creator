@@ -10,6 +10,7 @@
   "dependencies": {
     "@googlemaps/js-api-loader": "^1.12.1",
     "core-js": "^3.6.5",
+    "v-clipboard": "^2.2.3",
     "vue": "^2.6.11",
     "vuetify": "^2.4.0"
   },
